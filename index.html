@@ -50,6 +50,8 @@
   .btn:disabled:hover{background:transparent;color:var(--accent);box-shadow:none;}
   .btn-o{border-color:var(--accent2);color:var(--accent2);}
   .btn-o:hover{background:var(--accent2);color:var(--bg);}
+  .btn-dim{border-color:var(--dim);color:var(--dim);}
+  .btn-dim:hover{background:var(--dim);color:var(--bg);}
   #results{display:none;text-align:center;}
   #results.show{display:block;}
   .result-score{font-family:'Orbitron',sans-serif;font-size:clamp(50px,14vw,80px);font-weight:900;color:var(--accent);text-shadow:0 0 40px rgba(0,212,255,.5);line-height:1;}
@@ -66,8 +68,7 @@
   .status-row{font-size:12px;margin-bottom:14px;}
   .ctrl-btns{display:flex;flex-wrap:wrap;gap:8px;}
   .ctrl-btns .btn{margin-top:0;}
-  .btn-dim{border-color:var(--dim);color:var(--dim);}
-  .btn-dim:hover{background:var(--dim);color:var(--bg);}
+  .loading-msg{font-size:12px;color:var(--dim);padding:20px;text-align:center;}
 </style>
 </head>
 <body>
@@ -78,6 +79,13 @@
     <div class="subtitle">Presented by Mentor Faizan · Season Certification</div>
   </header>
 
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen">
+    <div class="card" style="text-align:center">
+      <div class="loading-msg">Loading quiz...</div>
+    </div>
+  </div>
+
   <!-- CLOSED SCREEN -->
   <div id="closed-screen" style="display:none">
     <div class="card" style="text-align:center">
@@ -87,7 +95,7 @@
   </div>
 
   <!-- NAME SCREEN -->
-  <div id="name-screen">
+  <div id="name-screen" style="display:none">
     <div class="card">
       <div class="name-title">Enter Your Name</div>
       <div class="name-sub">This quiz covers FRC 2026 REBUILT game rules, drive team roles, and key regulations from the Game Manual and Team Updates. You will receive 10 random questions.</div>
@@ -109,6 +117,7 @@
           <button class="btn btn-o" onclick="setQuizOpen(false)">Close Quiz</button>
           <button class="btn btn-dim" onclick="viewSheet()">View Results Sheet</button>
         </div>
+        <div id="toggle-msg" style="font-size:11px;margin-top:10px;min-height:16px;color:var(--dim)"></div>
       </div>
     </div>
   </div>
@@ -143,14 +152,13 @@
         <div class="bd-item"><div class="bd-val" id="res-wrong" style="color:var(--wrong)">0</div><div class="bd-lbl">Incorrect</div></div>
       </div>
       <div class="saving-msg" id="saving-msg"></div>
-      <button class="btn btn-o" onclick="restartQuiz()">Take Again</button>
     </div>
   </div>
 </div>
 
 <script>
 var PASS_KEY = "rebuilt2026";
-var SHEET_URL = "https://script.google.com/macros/s/AKfycbw3oXb4HOBWgTF4vdfqw6g5P447UESz5P2WJQV-CLdMt16ILHdqGVVgtygQEUdvXiDo/exec";
+var SHEET_URL = "https://script.google.com/macros/s/AKfycbyOYOHo_7DpLXwrMKiZjk5BMKpP5CgLnu9Isf0j5YudU16Qh__RpC45C8eZXLTYvQMa/exec";
 var SHEET_LINK = "https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit";
 
 var ALL_Q = [
@@ -175,26 +183,50 @@ var pName='', questions=[], cur=0, score=0, answered=false, answerLog=[];
 
 function shuffle(a){ return a.slice().sort(function(){return Math.random()-.5;}); }
 
-function applyQuizState(){
-  var isOpen = localStorage.getItem('quiz_open') !== 'false';
-  document.getElementById('closed-screen').style.display = isOpen ? 'none' : 'block';
-  document.getElementById('name-screen').style.display = isOpen ? 'block' : 'none';
+function viewSheet(){
+  window.open(SHEET_LINK, '_blank');
+}
+
+// Check open/close state from Google Sheet on page load
+function checkQuizState(){
+  fetch(SHEET_URL)
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    document.getElementById('loading-screen').style.display='none';
+    if(res.open === false){
+      document.getElementById('closed-screen').style.display='block';
+    } else {
+      document.getElementById('name-screen').style.display='block';
+    }
+  })
+  .catch(function(){
+    // If fetch fails, default to open
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('name-screen').style.display='block';
+  });
 }
 
 function setQuizOpen(open){
-  localStorage.setItem('quiz_open', open ? 'true' : 'false');
-  var label = document.getElementById('quiz-status-label');
-  label.textContent = open ? 'OPEN' : 'CLOSED';
-  label.style.color = open ? 'var(--correct)' : 'var(--wrong)';
-  applyQuizState();
-  // hide name screen but keep admin controls visible
-  if(!open){
-    document.getElementById('name-screen').style.display = 'block';
-  }
-}
-
-function viewSheet(){
-  window.open(SHEET_LINK, '_blank');
+  var msg = document.getElementById('toggle-msg');
+  msg.textContent = 'Updating...';
+  msg.style.color = 'var(--dim)';
+  fetch(SHEET_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'setOpen', value: open})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    var label = document.getElementById('quiz-status-label');
+    label.textContent = open ? 'OPEN' : 'CLOSED';
+    label.style.color = open ? 'var(--correct)' : 'var(--wrong)';
+    msg.textContent = open ? 'Quiz is now open for everyone.' : 'Quiz is now closed for everyone.';
+    msg.style.color = open ? 'var(--correct)' : 'var(--wrong)';
+  })
+  .catch(function(){
+    msg.textContent = 'Could not update. Check connection.';
+    msg.style.color = 'var(--wrong)';
+  });
 }
 
 function toggleAdminLogin(){
@@ -204,16 +236,20 @@ function toggleAdminLogin(){
 function adminLogin(){
   var pw = document.getElementById('admin-pw-input').value;
   if(pw === PASS_KEY){
-    document.getElementById('admin-err').style.display = 'none';
+    document.getElementById('admin-err').style.display='none';
     document.getElementById('admin-login-area').classList.remove('show');
     var ctrl = document.getElementById('admin-controls');
-    ctrl.style.display = 'block';
-    var isOpen = localStorage.getItem('quiz_open') !== 'false';
-    var label = document.getElementById('quiz-status-label');
-    label.textContent = isOpen ? 'OPEN' : 'CLOSED';
-    label.style.color = isOpen ? 'var(--correct)' : 'var(--wrong)';
+    ctrl.style.display='block';
+    // Fetch current state to show correct status
+    fetch(SHEET_URL)
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      var label = document.getElementById('quiz-status-label');
+      label.textContent = res.open ? 'OPEN' : 'CLOSED';
+      label.style.color = res.open ? 'var(--correct)' : 'var(--wrong)';
+    });
   } else {
-    document.getElementById('admin-err').style.display = 'block';
+    document.getElementById('admin-err').style.display='block';
   }
 }
 
@@ -326,16 +362,10 @@ function sendToSheet(data){
   });
 }
 
-function restartQuiz(){
-  document.getElementById('results').classList.remove('show');
-  document.getElementById('name-screen').style.display='block';
-  document.getElementById('name-input').value='';
-}
-
 document.getElementById('name-input').addEventListener('keydown',function(e){ if(e.key==='Enter') startQuiz(); });
 document.getElementById('admin-pw-input').addEventListener('keydown',function(e){ if(e.key==='Enter') adminLogin(); });
 
-applyQuizState();
+checkQuizState();
 </script>
 </body>
 </html>
