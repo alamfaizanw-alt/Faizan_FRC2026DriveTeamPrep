@@ -334,29 +334,31 @@ function sendToSheet(data){
   var msg=document.getElementById('saving-msg');
   msg.style.color='var(--dim)';
   msg.textContent='Saving results...';
-  var xhr=new XMLHttpRequest();
-  xhr.open('POST',SHEET_URL,true);
-  xhr.setRequestHeader('Content-Type','application/json');
-  xhr.onload=function(){
-    try{
-      var res=JSON.parse(xhr.responseText);
-      if(res.status==='duplicate'){
-        msg.style.color='var(--wrong)';
-        msg.textContent='This name has already been submitted. Only your first attempt counts.';
-      } else {
-        msg.style.color='var(--correct)';
-        msg.textContent='Results saved!';
-      }
-    } catch(e){
-      msg.style.color='var(--correct)';
-      msg.textContent='Results submitted!';
-    }
-  };
-  xhr.onerror=function(){
+
+  // Build results summary string
+  var summary = 'Score: '+data.score+'/'+data.total+' ('+Math.round(data.score/data.total*100)+'%)\n';
+  summary += 'Date: '+data.date+'\n\n';
+  data.log.forEach(function(l, i){
+    summary += 'Q'+(i+1)+': '+l.question+'\n';
+    summary += 'Answer: '+l.chosen+' — '+(l.wasCorrect?'CORRECT':'WRONG (Correct: '+l.correctAnswer+')')+'\n\n';
+  });
+
+  var FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdD-eb_mItLFYuYTvlMgq2gUh0ZCkRqHwLGK0hWaJFO-tdVXQ/formResponse';
+  var formData = new FormData();
+  formData.append('entry.2085774189', data.name);
+  formData.append('entry.2044027855', summary);
+
+  fetch(FORM_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: formData
+  }).then(function(){
+    msg.style.color='var(--correct)';
+    msg.textContent='Results saved!';
+  }).catch(function(){
     msg.style.color='var(--wrong)';
     msg.textContent='Could not save. Check your connection.';
-  };
-  xhr.send(JSON.stringify(data));
+  });
 }
 
 function restartQuiz(){
