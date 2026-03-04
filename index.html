@@ -79,14 +79,12 @@
     <div class="subtitle">Presented by Mentor Faizan · Season Certification</div>
   </header>
 
-  <!-- LOADING SCREEN -->
   <div id="loading-screen">
     <div class="card" style="text-align:center">
       <div class="loading-msg">Loading quiz...</div>
     </div>
   </div>
 
-  <!-- CLOSED SCREEN -->
   <div id="closed-screen" style="display:none">
     <div class="card" style="text-align:center">
       <div style="font-family:'Orbitron',sans-serif;font-size:clamp(14px,3vw,20px);font-weight:700;color:var(--wrong);margin-bottom:12px">QUIZ CLOSED</div>
@@ -94,7 +92,6 @@
     </div>
   </div>
 
-  <!-- NAME SCREEN -->
   <div id="name-screen" style="display:none">
     <div class="card">
       <div class="name-title">Enter Your Name</div>
@@ -122,14 +119,12 @@
     </div>
   </div>
 
-  <!-- SCOREBAR -->
   <div class="scorebar" id="scorebar" style="display:none">
     <div class="stat"><div class="stat-val" id="score-display">0</div><div class="stat-label">Score</div></div>
     <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
     <div class="stat"><div class="stat-val" id="q-counter">1/10</div><div class="stat-label">Question</div></div>
   </div>
 
-  <!-- QUIZ -->
   <div id="quiz-area" style="display:none">
     <div class="card" id="question-card">
       <div class="q-number" id="q-label">QUESTION 01 OF 10</div>
@@ -140,7 +135,6 @@
     <button class="btn" id="btn-next" onclick="nextQuestion()" disabled style="display:none">Next</button>
   </div>
 
-  <!-- RESULTS -->
   <div id="results">
     <div class="card">
       <div class="result-score" id="final-score">0/10</div>
@@ -152,6 +146,7 @@
         <div class="bd-item"><div class="bd-val" id="res-wrong" style="color:var(--wrong)">0</div><div class="bd-lbl">Incorrect</div></div>
       </div>
       <div class="saving-msg" id="saving-msg"></div>
+      <button class="btn btn-o" style="margin-top:20px" onclick="restartQuiz()">&#8634; Take Again</button>
     </div>
   </div>
 </div>
@@ -183,50 +178,44 @@ var pName='', questions=[], cur=0, score=0, answered=false, answerLog=[];
 
 function shuffle(a){ return a.slice().sort(function(){return Math.random()-.5;}); }
 
-function viewSheet(){
-  window.open(SHEET_LINK, '_blank');
-}
+function viewSheet(){ window.open(SHEET_LINK,'_blank'); }
 
-// Check open/close state from Google Sheet on page load
 function checkQuizState(){
   fetch(SHEET_URL)
   .then(function(r){ return r.json(); })
   .then(function(res){
     document.getElementById('loading-screen').style.display='none';
-    if(res.open === false){
+    if(res.open===false){
       document.getElementById('closed-screen').style.display='block';
     } else {
       document.getElementById('name-screen').style.display='block';
     }
   })
   .catch(function(){
-    // If fetch fails, default to open
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('name-screen').style.display='block';
   });
 }
 
 function setQuizOpen(open){
-  var msg = document.getElementById('toggle-msg');
-  msg.textContent = 'Updating...';
-  msg.style.color = 'var(--dim)';
-  fetch(SHEET_URL, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'setOpen', value: open})
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(res){
-    var label = document.getElementById('quiz-status-label');
-    label.textContent = open ? 'OPEN' : 'CLOSED';
-    label.style.color = open ? 'var(--correct)' : 'var(--wrong)';
-    msg.textContent = open ? 'Quiz is now open for everyone.' : 'Quiz is now closed for everyone.';
-    msg.style.color = open ? 'var(--correct)' : 'var(--wrong)';
-  })
-  .catch(function(){
-    msg.textContent = 'Could not update. Check connection.';
-    msg.style.color = 'var(--wrong)';
-  });
+  var msg=document.getElementById('toggle-msg');
+  msg.textContent='Updating...';
+  msg.style.color='var(--dim)';
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST', SHEET_URL, true);
+  xhr.setRequestHeader('Content-Type','application/json');
+  xhr.onload=function(){
+    var label=document.getElementById('quiz-status-label');
+    label.textContent=open?'OPEN':'CLOSED';
+    label.style.color=open?'var(--correct)':'var(--wrong)';
+    msg.textContent=open?'Quiz is now open for everyone.':'Quiz is now closed for everyone.';
+    msg.style.color=open?'var(--correct)':'var(--wrong)';
+  };
+  xhr.onerror=function(){
+    msg.textContent='Could not update. Check connection.';
+    msg.style.color='var(--wrong)';
+  };
+  xhr.send(JSON.stringify({action:'setOpen',value:open}));
 }
 
 function toggleAdminLogin(){
@@ -234,19 +223,20 @@ function toggleAdminLogin(){
 }
 
 function adminLogin(){
-  var pw = document.getElementById('admin-pw-input').value;
-  if(pw === PASS_KEY){
+  var pw=document.getElementById('admin-pw-input').value;
+  if(pw===PASS_KEY){
     document.getElementById('admin-err').style.display='none';
     document.getElementById('admin-login-area').classList.remove('show');
-    var ctrl = document.getElementById('admin-controls');
-    ctrl.style.display='block';
-    // Fetch current state to show correct status
+    document.getElementById('admin-controls').style.display='block';
     fetch(SHEET_URL)
     .then(function(r){ return r.json(); })
     .then(function(res){
-      var label = document.getElementById('quiz-status-label');
-      label.textContent = res.open ? 'OPEN' : 'CLOSED';
-      label.style.color = res.open ? 'var(--correct)' : 'var(--wrong)';
+      var label=document.getElementById('quiz-status-label');
+      label.textContent=res.open?'OPEN':'CLOSED';
+      label.style.color=res.open?'var(--correct)':'var(--wrong)';
+    })
+    .catch(function(){
+      document.getElementById('quiz-status-label').textContent='UNKNOWN';
     });
   } else {
     document.getElementById('admin-err').style.display='block';
@@ -254,7 +244,7 @@ function adminLogin(){
 }
 
 function startQuiz(){
-  var v = document.getElementById('name-input').value.trim();
+  var v=document.getElementById('name-input').value.trim();
   if(!v){ document.getElementById('name-err').style.display='block'; return; }
   document.getElementById('name-err').style.display='none';
   pName=v;
@@ -271,7 +261,7 @@ function loadQ(){
   var q=questions[cur];
   document.getElementById('q-label').textContent='QUESTION '+String(cur+1).padStart(2,'0')+' OF 10';
   document.getElementById('q-text').textContent=q.q;
-  var sb=document.getElementById('btn-submit'), nb=document.getElementById('btn-next');
+  var sb=document.getElementById('btn-submit'),nb=document.getElementById('btn-next');
   sb.disabled=true; sb.style.display='inline-block';
   nb.disabled=true; nb.style.display='none';
   nb.textContent=cur<9?'Next':'See Results';
@@ -306,10 +296,10 @@ function submitAnswer(){
   var chosenOrig=parseInt(sel.dataset.orig);
   var correct=(chosenOrig===questions[cur].a);
   answerLog.push({
-    question: questions[cur].q,
-    chosen: questions[cur].o[chosenOrig],
-    correctAnswer: questions[cur].o[questions[cur].a],
-    wasCorrect: correct
+    question:questions[cur].q,
+    chosen:questions[cur].o[chosenOrig],
+    correctAnswer:questions[cur].o[questions[cur].a],
+    wasCorrect:correct
   });
   var all=document.querySelectorAll('.option');
   for(var i=0;i<all.length;i++) all[i].disabled=true;
@@ -331,35 +321,48 @@ function showResults(){
   document.getElementById('res-correct').textContent=score;
   document.getElementById('res-wrong').textContent=10-score;
   var p=score/10;
-  var msg=p>=.9?'Outstanding. You know the rulebook cold.':p>=.7?'Good work. Review your weak spots before competition.':p>=.5?'Passing - but more study is needed.':'Keep studying. Your team is counting on you.';
-  document.getElementById('result-msg').textContent=msg;
+  document.getElementById('result-msg').textContent=
+    p>=.9?'Outstanding. You know the rulebook cold.':
+    p>=.7?'Good work. Review your weak spots before competition.':
+    p>=.5?'Passing - but more study is needed.':
+    'Keep studying. Your team is counting on you.';
   document.getElementById('progress-bar').style.width='100%';
-  sendToSheet({name:pName, score:score, total:10, date:new Date().toLocaleString(), log:answerLog});
+  sendToSheet({name:pName,score:score,total:10,date:new Date().toLocaleString(),log:answerLog});
 }
 
 function sendToSheet(data){
   var msg=document.getElementById('saving-msg');
   msg.style.color='var(--dim)';
   msg.textContent='Saving results...';
-  fetch(SHEET_URL, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(data)
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(res){
-    if(res.status==='duplicate'){
-      msg.style.color='var(--wrong)';
-      msg.textContent='This name has already been submitted. Only your first attempt counts.';
-    } else {
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',SHEET_URL,true);
+  xhr.setRequestHeader('Content-Type','application/json');
+  xhr.onload=function(){
+    try{
+      var res=JSON.parse(xhr.responseText);
+      if(res.status==='duplicate'){
+        msg.style.color='var(--wrong)';
+        msg.textContent='This name has already been submitted. Only your first attempt counts.';
+      } else {
+        msg.style.color='var(--correct)';
+        msg.textContent='Results saved!';
+      }
+    } catch(e){
       msg.style.color='var(--correct)';
-      msg.textContent='Results saved!';
+      msg.textContent='Results submitted!';
     }
-  })
-  .catch(function(){
-    msg.style.color='var(--correct)';
-    msg.textContent='Results submitted!';
-  });
+  };
+  xhr.onerror=function(){
+    msg.style.color='var(--wrong)';
+    msg.textContent='Could not save. Check your connection.';
+  };
+  xhr.send(JSON.stringify(data));
+}
+
+function restartQuiz(){
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('name-screen').style.display='block';
+  document.getElementById('name-input').value='';
 }
 
 document.getElementById('name-input').addEventListener('keydown',function(e){ if(e.key==='Enter') startQuiz(); });
