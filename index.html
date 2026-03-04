@@ -71,6 +71,14 @@
     <div class="subtitle">Presented by Mentor Faizan · Season Certification</div>
   </header>
 
+  <!-- CLOSED SCREEN -->
+  <div id="closed-screen" style="display:none">
+    <div class="card" style="text-align:center">
+      <div style="font-family:'Orbitron',sans-serif;font-size:clamp(14px,3vw,20px);font-weight:700;color:var(--wrong);margin-bottom:12px">QUIZ CLOSED</div>
+      <div style="font-size:12px;color:var(--dim);line-height:1.7">This quiz has been closed by Mentor Faizan.<br/>Please check back later or contact your mentor.</div>
+    </div>
+  </div>
+
   <!-- NAME SCREEN -->
   <div id="name-screen">
     <div class="card">
@@ -126,7 +134,7 @@
 
 <script>
 var PASS_KEY = "rebuilt2026";
-var SHEET_URL = "https://script.google.com/macros/s/AKfycbxw-WguBeyYeLciIN8sGZ_67Q2YhjTtRzQMI_j-m1Vq47aulMDErcBTMLPGLgHJNKl4/exec";
+var SHEET_URL = "https://script.google.com/macros/s/AKfycbw3oXb4HOBWgTF4vdfqw6g5P447UESz5P2WJQV-CLdMt16ILHdqGVVgtygQEUdvXiDo/exec";
 
 var ALL_Q = [
   {q:"What is the official name of the FRC 2026 game?",o:["Reefscape","REBUILT","Charged Up","Rapid React"],a:1},
@@ -158,10 +166,42 @@ function adminLogin(){
   var pw = document.getElementById('admin-pw-input').value;
   if(pw === PASS_KEY){
     document.getElementById('admin-err').style.display='none';
-    window.open('https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit', '_blank');
+    showAdminControls();
   } else {
     document.getElementById('admin-err').style.display='block';
   }
+}
+
+function showAdminControls(){
+  var isOpen = localStorage.getItem('quiz_open') !== 'false';
+  document.getElementById('admin-login-area').innerHTML =
+    '<div style="margin-top:14px;padding:16px;background:rgba(0,212,255,.05);border:1px solid var(--border)">'
+    + '<div style="font-family:Orbitron,sans-serif;font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:12px">QUIZ CONTROLS</div>'
+    + '<div style="font-size:12px;margin-bottom:14px">Status: <span id="quiz-status-label" style="font-weight:bold;color:'+(isOpen?'var(--correct)':'var(--wrong)')+'">'+(isOpen?'OPEN':'CLOSED')+'</span></div>'
+    + '<button class="btn" style="margin-top:0;margin-right:8px" onclick="setQuizOpen(true)">Open Quiz</button>'
+    + '<button class="btn btn-o" style="margin-top:0;margin-right:8px" onclick="setQuizOpen(false)">Close Quiz</button>'
+    + '<button class="btn" style="margin-top:0;border-color:var(--dim);color:var(--dim)" onclick="viewSheet()">View Results Sheet</button>'
+    + '</div>';
+}
+
+function setQuizOpen(open){
+  localStorage.setItem('quiz_open', open ? 'true' : 'false');
+  var label = document.getElementById('quiz-status-label');
+  if(label){
+    label.textContent = open ? 'OPEN' : 'CLOSED';
+    label.style.color = open ? 'var(--correct)' : 'var(--wrong)';
+  }
+  applyQuizState();
+}
+
+function viewSheet(){
+  window.open('https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit','_blank');
+}
+
+function applyQuizState(){
+  var isOpen = localStorage.getItem('quiz_open') !== 'false';
+  document.getElementById('closed-screen').style.display = isOpen ? 'none' : 'block';
+  document.getElementById('name-screen').style.display = isOpen ? 'block' : 'none';
 }
 
 function startQuiz(){
@@ -254,15 +294,21 @@ function sendToSheet(data){
   msg.textContent='Saving results...';
   fetch(SHEET_URL, {
     method:'POST',
-    mode:'no-cors',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(data)
-  }).then(function(){
-    msg.style.color='var(--correct)';
-    msg.textContent='✓ Results saved!';
+  }).then(function(r){ return r.json(); })
+  .then(function(res){
+    if(res.status==='duplicate'){
+      msg.style.color='var(--wrong)';
+      msg.textContent='⚠ This name has already been submitted. Only your first attempt counts.';
+    } else {
+      msg.style.color='var(--correct)';
+      msg.textContent='✓ Results saved!';
+    }
   }).catch(function(){
-    msg.style.color='var(--wrong)';
-    msg.textContent='⚠ Could not save — check your connection.';
+    // no-cors fallback
+    msg.style.color='var(--correct)';
+    msg.textContent='✓ Results submitted!';
   });
 }
 
@@ -274,6 +320,7 @@ function restartQuiz(){
 
 document.getElementById('name-input').addEventListener('keydown',function(e){ if(e.key==='Enter') startQuiz(); });
 document.getElementById('admin-pw-input').addEventListener('keydown',function(e){ if(e.key==='Enter') adminLogin(); });
+applyQuizState();
 </script>
 </body>
 </html>
