@@ -153,7 +153,7 @@
 
 <script>
 var PASS_KEY = "rebuilt2026";
-var SHEET_URL = "https://script.google.com/macros/s/AKfycbwgX8XrNN1WXIR21L-l79cCDYbSaPBj8YND9hbPN8fwh3P80iBotDAHE0XVNGd6KnHK/exec";
+var SHEET_URL = "https://script.google.com/macros/s/AKfycbxw-WguBeyYeLciIN8sGZ_67Q2YhjTtRzQMI_j-m1Vq47aulMDErcBTMLPGLgHJNKl4/exec";
 var SHEET_LINK = "https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit";
 
 var ALL_Q = [
@@ -334,31 +334,29 @@ function sendToSheet(data){
   var msg=document.getElementById('saving-msg');
   msg.style.color='var(--dim)';
   msg.textContent='Saving results...';
-
-  // Build results summary string
-  var summary = 'Score: '+data.score+'/'+data.total+' ('+Math.round(data.score/data.total*100)+'%)\n';
-  summary += 'Date: '+data.date+'\n\n';
-  data.log.forEach(function(l, i){
-    summary += 'Q'+(i+1)+': '+l.question+'\n';
-    summary += 'Answer: '+l.chosen+' — '+(l.wasCorrect?'CORRECT':'WRONG (Correct: '+l.correctAnswer+')')+'\n\n';
-  });
-
-  var FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdD-eb_mItLFYuYTvlMgq2gUh0ZCkRqHwLGK0hWaJFO-tdVXQ/formResponse';
-  var formData = new FormData();
-  formData.append('entry.2085774189', data.name);
-  formData.append('entry.2044027855', summary);
-
-  fetch(FORM_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    body: formData
-  }).then(function(){
-    msg.style.color='var(--correct)';
-    msg.textContent='Results saved!';
-  }).catch(function(){
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',SHEET_URL,true);
+  xhr.setRequestHeader('Content-Type','application/json');
+  xhr.onload=function(){
+    try{
+      var res=JSON.parse(xhr.responseText);
+      if(res.status==='duplicate'){
+        msg.style.color='var(--wrong)';
+        msg.textContent='This name has already been submitted. Only your first attempt counts.';
+      } else {
+        msg.style.color='var(--correct)';
+        msg.textContent='Results saved!';
+      }
+    } catch(e){
+      msg.style.color='var(--correct)';
+      msg.textContent='Results submitted!';
+    }
+  };
+  xhr.onerror=function(){
     msg.style.color='var(--wrong)';
     msg.textContent='Could not save. Check your connection.';
-  });
+  };
+  xhr.send(JSON.stringify(data));
 }
 
 function restartQuiz(){
