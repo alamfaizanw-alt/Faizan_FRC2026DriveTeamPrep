@@ -61,6 +61,13 @@
   .bd-val{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;}
   .bd-lbl{font-size:9px;color:var(--dim);letter-spacing:2px;margin-top:3px;}
   .saving-msg{font-size:11px;color:var(--dim);margin-top:10px;min-height:18px;}
+  .admin-controls{margin-top:14px;padding:16px;background:rgba(0,212,255,.05);border:1px solid var(--border);}
+  .admin-controls-title{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:12px;}
+  .status-row{font-size:12px;margin-bottom:14px;}
+  .ctrl-btns{display:flex;flex-wrap:wrap;gap:8px;}
+  .ctrl-btns .btn{margin-top:0;}
+  .btn-dim{border-color:var(--dim);color:var(--dim);}
+  .btn-dim:hover{background:var(--dim);color:var(--bg);}
 </style>
 </head>
 <body>
@@ -86,13 +93,22 @@
       <div class="name-sub">This quiz covers FRC 2026 REBUILT game rules, drive team roles, and key regulations from the Game Manual and Team Updates. You will receive 10 random questions.</div>
       <input class="field-input" id="name-input" type="text" placeholder="First and Last Name" autocomplete="off" maxlength="40"/>
       <div class="err" id="name-err">Please enter your name to continue.</div>
-      <button class="btn" onclick="startQuiz()">Begin Quiz →</button>
+      <button class="btn" onclick="startQuiz()">Begin Quiz</button>
       <hr class="divider"/>
-      <div class="admin-link" onclick="toggleAdminLogin()">▸ Admin Login</div>
+      <div class="admin-link" onclick="toggleAdminLogin()">&#9658; Admin Login</div>
       <div class="admin-login-area" id="admin-login-area">
         <input class="field-input" id="admin-pw-input" type="password" placeholder="Admin Password" style="margin-top:12px"/>
         <div class="err" id="admin-err">Incorrect password.</div>
-        <button class="btn" onclick="adminLogin()">Enter Admin →</button>
+        <button class="btn" onclick="adminLogin()">Enter Admin</button>
+      </div>
+      <div id="admin-controls" class="admin-controls" style="display:none">
+        <div class="admin-controls-title">// QUIZ CONTROLS</div>
+        <div class="status-row">Status: <span id="quiz-status-label" style="font-weight:bold">--</span></div>
+        <div class="ctrl-btns">
+          <button class="btn" onclick="setQuizOpen(true)">Open Quiz</button>
+          <button class="btn btn-o" onclick="setQuizOpen(false)">Close Quiz</button>
+          <button class="btn btn-dim" onclick="viewSheet()">View Results Sheet</button>
+        </div>
       </div>
     </div>
   </div>
@@ -112,7 +128,7 @@
       <div class="options" id="options-grid"></div>
     </div>
     <button class="btn" id="btn-submit" onclick="submitAnswer()" disabled style="margin-right:8px">Submit Answer</button>
-    <button class="btn" id="btn-next" onclick="nextQuestion()" disabled style="display:none">Next →</button>
+    <button class="btn" id="btn-next" onclick="nextQuestion()" disabled style="display:none">Next</button>
   </div>
 
   <!-- RESULTS -->
@@ -126,8 +142,8 @@
         <div class="bd-item"><div class="bd-val" id="res-correct" style="color:var(--correct)">0</div><div class="bd-lbl">Correct</div></div>
         <div class="bd-item"><div class="bd-val" id="res-wrong" style="color:var(--wrong)">0</div><div class="bd-lbl">Incorrect</div></div>
       </div>
-      <div class="saving-msg" id="saving-msg">Saving results...</div>
-      <button class="btn btn-o" onclick="restartQuiz()">↺ Take Again</button>
+      <div class="saving-msg" id="saving-msg"></div>
+      <button class="btn btn-o" onclick="restartQuiz()">Take Again</button>
     </div>
   </div>
 </div>
@@ -135,11 +151,12 @@
 <script>
 var PASS_KEY = "rebuilt2026";
 var SHEET_URL = "https://script.google.com/macros/s/AKfycbw3oXb4HOBWgTF4vdfqw6g5P447UESz5P2WJQV-CLdMt16ILHdqGVVgtygQEUdvXiDo/exec";
+var SHEET_LINK = "https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit";
 
 var ALL_Q = [
   {q:"What is the official name of the FRC 2026 game?",o:["Reefscape","REBUILT","Charged Up","Rapid React"],a:1},
   {q:"What is the primary game piece in FRC 2026 REBUILT?",o:["Coral","Algae","Fuel","Gears"],a:2},
-  {q:"Under rule G408, if a robot intentionally sits under the HUB to collect a large quantity of FUEL, this is classified as:",o:["A legal defensive strategy","A Minor Foul only","A strategic violation — Major Foul and Verbal Warning","Automatic disqualification"],a:2},
+  {q:"Under rule G408, if a robot intentionally sits under the HUB to collect a large quantity of FUEL, this is classified as:",o:["A legal defensive strategy","A Minor Foul only","A strategic violation - Major Foul and Verbal Warning","Automatic disqualification"],a:2},
   {q:"Team Update 14 added exception D to G413. A flex of ROBOT components contributing to an R106 violation is exempt from penalty if within how many inches of the ROBOT PERIMETER?",o:["0.5 in","1.0 in","1.5 in","2.0 in"],a:2},
   {q:"Rule G415 prohibits using a component outside the ROBOT PERIMETER (except BUMPERS) to initiate contact with an opponent where?",o:["Anywhere on the field","Inside the vertical projection of the opponent's ROBOT PERIMETER or with their BUMPER backing/mounting","Only in the opponent's ALLIANCE ZONE","Only during Autonomous"],a:1},
   {q:"Under G416, which scenario IS an exception (allowed) to the rule against damaging an opponent robot?",o:["Contact inside an opening of an opponent's BUMPERS or the space above it","Any contact during Teleop","Contact via a SCORING ELEMENT the robot controls","Contact during Endgame"],a:0},
@@ -147,7 +164,7 @@ var ALL_Q = [
   {q:"Under G427, a HUMAN PLAYER is exempt from the OUTPOST storage limit while holding up to how many FUEL?",o:["1","2","3","5"],a:1},
   {q:"Per rule G303, if a robot's starting position prevents a FIELD gate from opening, what occurs?",o:["Match is delayed until it moves","The robot may be asked to move; teams should prepare multiple AUTO start locations","The team receives a FOUL penalty","The alliance forfeits all AUTO points"],a:1},
   {q:"What does a PURPLE HUB light color indicate post-match?",o:["Field is safe for all","Match is ready to start","Field is safe for FIELD STAFF only","Post-match 3-second scoring assessment"],a:2},
-  {q:"What does the ALLIANCE color PULSING on the HUB indicate during a match?",o:["HUB is fully active and scoring","HUB deactivation warning — begins 3 seconds before deactivation","Transition Shift is starting","Alliance is currently winning"],a:1},
+  {q:"What does the ALLIANCE color PULSING on the HUB indicate during a match?",o:["HUB is fully active and scoring","HUB deactivation warning - begins 3 seconds before deactivation","Transition Shift is starting","Alliance is currently winning"],a:1},
   {q:"Which of the following is NOT a valid exception to the G413 expansion limits rule?",o:["Visible damage not used for strategic benefit","Momentary over-expansion not for strategic benefit","Component flex within 1.5 in of ROBOT PERIMETER","Intentional expansion to block an opponent"],a:3},
   {q:"According to section 5.7, how wide is a DEPOT in FRC 2026 REBUILT?",o:["36.0 in","42.0 in","48.0 in","27.0 in"],a:1},
   {q:"Violations of G408 (Don't catch FUEL) are counted per what unit?",o:["Per individual FUEL piece","Per match","Per instance of catching/redirecting from the HUB","Per robot per period"],a:2},
@@ -158,6 +175,28 @@ var pName='', questions=[], cur=0, score=0, answered=false, answerLog=[];
 
 function shuffle(a){ return a.slice().sort(function(){return Math.random()-.5;}); }
 
+function applyQuizState(){
+  var isOpen = localStorage.getItem('quiz_open') !== 'false';
+  document.getElementById('closed-screen').style.display = isOpen ? 'none' : 'block';
+  document.getElementById('name-screen').style.display = isOpen ? 'block' : 'none';
+}
+
+function setQuizOpen(open){
+  localStorage.setItem('quiz_open', open ? 'true' : 'false');
+  var label = document.getElementById('quiz-status-label');
+  label.textContent = open ? 'OPEN' : 'CLOSED';
+  label.style.color = open ? 'var(--correct)' : 'var(--wrong)';
+  applyQuizState();
+  // hide name screen but keep admin controls visible
+  if(!open){
+    document.getElementById('name-screen').style.display = 'block';
+  }
+}
+
+function viewSheet(){
+  window.open(SHEET_LINK, '_blank');
+}
+
 function toggleAdminLogin(){
   document.getElementById('admin-login-area').classList.toggle('show');
 }
@@ -165,43 +204,17 @@ function toggleAdminLogin(){
 function adminLogin(){
   var pw = document.getElementById('admin-pw-input').value;
   if(pw === PASS_KEY){
-    document.getElementById('admin-err').style.display='none';
-    showAdminControls();
+    document.getElementById('admin-err').style.display = 'none';
+    document.getElementById('admin-login-area').classList.remove('show');
+    var ctrl = document.getElementById('admin-controls');
+    ctrl.style.display = 'block';
+    var isOpen = localStorage.getItem('quiz_open') !== 'false';
+    var label = document.getElementById('quiz-status-label');
+    label.textContent = isOpen ? 'OPEN' : 'CLOSED';
+    label.style.color = isOpen ? 'var(--correct)' : 'var(--wrong)';
   } else {
-    document.getElementById('admin-err').style.display='block';
+    document.getElementById('admin-err').style.display = 'block';
   }
-}
-
-function showAdminControls(){
-  var isOpen = localStorage.getItem('quiz_open') !== 'false';
-  document.getElementById('admin-login-area').innerHTML =
-    '<div style="margin-top:14px;padding:16px;background:rgba(0,212,255,.05);border:1px solid var(--border)">'
-    + '<div style="font-family:Orbitron,sans-serif;font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:12px">QUIZ CONTROLS</div>'
-    + '<div style="font-size:12px;margin-bottom:14px">Status: <span id="quiz-status-label" style="font-weight:bold;color:'+(isOpen?'var(--correct)':'var(--wrong)')+'">'+(isOpen?'OPEN':'CLOSED')+'</span></div>'
-    + '<button class="btn" style="margin-top:0;margin-right:8px" onclick="setQuizOpen(true)">Open Quiz</button>'
-    + '<button class="btn btn-o" style="margin-top:0;margin-right:8px" onclick="setQuizOpen(false)">Close Quiz</button>'
-    + '<button class="btn" style="margin-top:0;border-color:var(--dim);color:var(--dim)" onclick="viewSheet()">View Results Sheet</button>'
-    + '</div>';
-}
-
-function setQuizOpen(open){
-  localStorage.setItem('quiz_open', open ? 'true' : 'false');
-  var label = document.getElementById('quiz-status-label');
-  if(label){
-    label.textContent = open ? 'OPEN' : 'CLOSED';
-    label.style.color = open ? 'var(--correct)' : 'var(--wrong)';
-  }
-  applyQuizState();
-}
-
-function viewSheet(){
-  window.open('https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit','_blank');
-}
-
-function applyQuizState(){
-  var isOpen = localStorage.getItem('quiz_open') !== 'false';
-  document.getElementById('closed-screen').style.display = isOpen ? 'none' : 'block';
-  document.getElementById('name-screen').style.display = isOpen ? 'block' : 'none';
 }
 
 function startQuiz(){
@@ -225,7 +238,7 @@ function loadQ(){
   var sb=document.getElementById('btn-submit'), nb=document.getElementById('btn-next');
   sb.disabled=true; sb.style.display='inline-block';
   nb.disabled=true; nb.style.display='none';
-  nb.textContent=cur<9?'Next →':'See Results →';
+  nb.textContent=cur<9?'Next':'See Results';
   var idxs=shuffle([0,1,2,3]);
   var grid=document.getElementById('options-grid');
   grid.innerHTML='';
@@ -282,7 +295,7 @@ function showResults(){
   document.getElementById('res-correct').textContent=score;
   document.getElementById('res-wrong').textContent=10-score;
   var p=score/10;
-  var msg=p>=.9?'Outstanding. You know the rulebook cold.':p>=.7?'Good work. Review your weak spots before competition.':p>=.5?'Passing — but more study is needed.':'Keep studying. Your team is counting on you.';
+  var msg=p>=.9?'Outstanding. You know the rulebook cold.':p>=.7?'Good work. Review your weak spots before competition.':p>=.5?'Passing - but more study is needed.':'Keep studying. Your team is counting on you.';
   document.getElementById('result-msg').textContent=msg;
   document.getElementById('progress-bar').style.width='100%';
   sendToSheet({name:pName, score:score, total:10, date:new Date().toLocaleString(), log:answerLog});
@@ -296,19 +309,20 @@ function sendToSheet(data){
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(data)
-  }).then(function(r){ return r.json(); })
+  })
+  .then(function(r){ return r.json(); })
   .then(function(res){
     if(res.status==='duplicate'){
       msg.style.color='var(--wrong)';
-      msg.textContent='⚠ This name has already been submitted. Only your first attempt counts.';
+      msg.textContent='This name has already been submitted. Only your first attempt counts.';
     } else {
       msg.style.color='var(--correct)';
-      msg.textContent='✓ Results saved!';
+      msg.textContent='Results saved!';
     }
-  }).catch(function(){
-    // no-cors fallback
+  })
+  .catch(function(){
     msg.style.color='var(--correct)';
-    msg.textContent='✓ Results submitted!';
+    msg.textContent='Results submitted!';
   });
 }
 
@@ -320,6 +334,7 @@ function restartQuiz(){
 
 document.getElementById('name-input').addEventListener('keydown',function(e){ if(e.key==='Enter') startQuiz(); });
 document.getElementById('admin-pw-input').addEventListener('keydown',function(e){ if(e.key==='Enter') adminLogin(); });
+
 applyQuizState();
 </script>
 </body>
