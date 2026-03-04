@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRC 2026 REBUILT — Drive Team Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg:#050a14;--panel:#0a1628;--border:#1a3a6e;--accent:#00d4ff;--accent2:#ff6b00;--correct:#00ff88;--wrong:#ff3366;--text:#c8dff7;--dim:#4a6a8a;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .container{width:100%;max-width:680px;position:relative;z-index:1;}
+  header{text-align:center;margin-bottom:24px;padding-top:12px;}
+  .badge{display:inline-block;font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:4px;color:var(--accent);border:1px solid var(--accent);padding:4px 12px;margin-bottom:10px;animation:pb 2.5s infinite;}
+  @keyframes pb{0%,100%{box-shadow:0 0 4px var(--accent);}50%{box-shadow:0 0 18px var(--accent);}}
+  h1{font-family:'Orbitron',sans-serif;font-size:clamp(20px,6vw,36px);font-weight:900;color:#fff;letter-spacing:2px;line-height:1.15;text-shadow:0 0 30px rgba(0,212,255,.35);}
+  h1 span{color:var(--accent);}
+  .subtitle{margin-top:6px;font-size:10px;color:var(--dim);letter-spacing:3px;text-transform:uppercase;}
+  .card{background:var(--panel);border:1px solid var(--border);padding:clamp(16px,4vw,28px);margin-bottom:14px;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));animation:fi .4s ease;}
+  @keyframes fi{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .name-title{font-family:'Orbitron',sans-serif;font-size:clamp(13px,3vw,16px);font-weight:700;color:#fff;margin-bottom:8px;}
+  .name-sub{font-size:12px;color:var(--dim);margin-bottom:20px;line-height:1.6;}
+  .field-input{width:100%;background:rgba(0,212,255,.05);border:1px solid var(--border);color:#fff;font-family:'Share Tech Mono',monospace;font-size:15px;padding:13px 15px;outline:none;transition:border-color .2s;margin-bottom:6px;}
+  .field-input:focus{border-color:var(--accent);box-shadow:0 0 12px rgba(0,212,255,.2);}
+  .field-input::placeholder{color:var(--dim);}
+  .err{color:var(--wrong);font-size:11px;margin-bottom:10px;display:none;}
+  .divider{border:none;border-top:1px solid var(--border);margin:22px 0;}
+  .admin-link{font-size:11px;color:var(--dim);text-align:center;cursor:pointer;letter-spacing:2px;text-decoration:underline;}
+  .admin-link:hover{color:var(--accent);}
+  .admin-login-area{margin-top:14px;display:none;}
+  .admin-login-area.show{display:block;}
+  .scorebar{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--border);padding:10px 16px;margin-bottom:16px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));}
+  .stat{text-align:center;}
+  .stat-val{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700;color:var(--accent);}
+  .stat-label{font-size:9px;color:var(--dim);letter-spacing:2px;margin-top:2px;}
+  .progress-track{flex:1;height:3px;background:var(--border);margin:0 14px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s ease;box-shadow:0 0 8px var(--accent);}
+  .q-number{font-size:10px;color:var(--accent2);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;}
+  .q-text{font-family:'Orbitron',sans-serif;font-size:clamp(12px,2.8vw,15px);font-weight:700;color:#fff;line-height:1.6;margin-bottom:22px;}
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:480px){.options{grid-template-columns:1fr;}}
+  .option{background:transparent;border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:clamp(11px,2.5vw,13px);padding:12px 13px;text-align:left;cursor:pointer;transition:all .15s;clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,7px 100%,0 calc(100% - 7px));line-height:1.4;-webkit-tap-highlight-color:transparent;}
+  .option:hover:not(:disabled){border-color:var(--accent);color:#fff;background:rgba(0,212,255,.07);}
+  .option.selected{border-color:var(--accent);background:rgba(0,212,255,.12);color:#fff;}
+  .option:disabled{cursor:default;opacity:.65;}
+  .btn{display:inline-block;background:transparent;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;padding:11px 26px;cursor:pointer;text-transform:uppercase;transition:all .2s;border:1px solid var(--accent);color:var(--accent);margin-top:14px;clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px));}
+  .btn:hover{background:var(--accent);color:var(--bg);box-shadow:0 0 20px rgba(0,212,255,.4);}
+  .btn:disabled{opacity:.3;cursor:default;}
+  .btn:disabled:hover{background:transparent;color:var(--accent);box-shadow:none;}
+  .btn-o{border-color:var(--accent2);color:var(--accent2);}
+  .btn-o:hover{background:var(--accent2);color:var(--bg);}
+  #results{display:none;text-align:center;}
+  #results.show{display:block;}
+  .result-score{font-family:'Orbitron',sans-serif;font-size:clamp(50px,14vw,80px);font-weight:900;color:var(--accent);text-shadow:0 0 40px rgba(0,212,255,.5);line-height:1;}
+  .result-label{font-size:10px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;margin:8px 0 4px;}
+  .result-name{font-size:13px;color:var(--text);margin-bottom:18px;}
+  .result-msg{font-family:'Orbitron',sans-serif;font-size:clamp(11px,2.5vw,14px);color:#fff;margin-bottom:24px;line-height:1.5;}
+  .breakdown{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+  .bd-item{background:var(--panel);border:1px solid var(--border);padding:14px;clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,7px 100%,0 calc(100% - 7px));}
+  .bd-val{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;}
+  .bd-lbl{font-size:9px;color:var(--dim);letter-spacing:2px;margin-top:3px;}
+  .saving-msg{font-size:11px;color:var(--dim);margin-top:10px;min-height:18px;}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">FRC 2026 // REBUILT</div>
+    <h1>DRIVE TEAM<br/><span>QUIZ</span></h1>
+    <div class="subtitle">Presented by Mentor Faizan · Season Certification</div>
+  </header>
+
+  <!-- NAME SCREEN -->
+  <div id="name-screen">
+    <div class="card">
+      <div class="name-title">Enter Your Name</div>
+      <div class="name-sub">This quiz covers FRC 2026 REBUILT game rules, drive team roles, and key regulations from the Game Manual and Team Updates. You will receive 10 random questions.</div>
+      <input class="field-input" id="name-input" type="text" placeholder="First and Last Name" autocomplete="off" maxlength="40"/>
+      <div class="err" id="name-err">Please enter your name to continue.</div>
+      <button class="btn" onclick="startQuiz()">Begin Quiz →</button>
+      <hr class="divider"/>
+      <div class="admin-link" onclick="toggleAdminLogin()">▸ Admin Login</div>
+      <div class="admin-login-area" id="admin-login-area">
+        <input class="field-input" id="admin-pw-input" type="password" placeholder="Admin Password" style="margin-top:12px"/>
+        <div class="err" id="admin-err">Incorrect password.</div>
+        <button class="btn" onclick="adminLogin()">Enter Admin →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCOREBAR -->
+  <div class="scorebar" id="scorebar" style="display:none">
+    <div class="stat"><div class="stat-val" id="score-display">0</div><div class="stat-label">Score</div></div>
+    <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
+    <div class="stat"><div class="stat-val" id="q-counter">1/10</div><div class="stat-label">Question</div></div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz-area" style="display:none">
+    <div class="card" id="question-card">
+      <div class="q-number" id="q-label">QUESTION 01 OF 10</div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options" id="options-grid"></div>
+    </div>
+    <button class="btn" id="btn-submit" onclick="submitAnswer()" disabled style="margin-right:8px">Submit Answer</button>
+    <button class="btn" id="btn-next" onclick="nextQuestion()" disabled style="display:none">Next →</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div class="card">
+      <div class="result-score" id="final-score">0/10</div>
+      <div class="result-label">Final Score</div>
+      <div class="result-name" id="result-name"></div>
+      <div class="result-msg" id="result-msg"></div>
+      <div class="breakdown">
+        <div class="bd-item"><div class="bd-val" id="res-correct" style="color:var(--correct)">0</div><div class="bd-lbl">Correct</div></div>
+        <div class="bd-item"><div class="bd-val" id="res-wrong" style="color:var(--wrong)">0</div><div class="bd-lbl">Incorrect</div></div>
+      </div>
+      <div class="saving-msg" id="saving-msg">Saving results...</div>
+      <button class="btn btn-o" onclick="restartQuiz()">↺ Take Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var PASS_KEY = "rebuilt2026";
+var SHEET_URL = "https://script.google.com/macros/s/AKfycbxw-WguBeyYeLciIN8sGZ_67Q2YhjTtRzQMI_j-m1Vq47aulMDErcBTMLPGLgHJNKl4/exec";
+
+var ALL_Q = [
+  {q:"What is the official name of the FRC 2026 game?",o:["Reefscape","REBUILT","Charged Up","Rapid React"],a:1},
+  {q:"What is the primary game piece in FRC 2026 REBUILT?",o:["Coral","Algae","Fuel","Gears"],a:2},
+  {q:"Under rule G408, if a robot intentionally sits under the HUB to collect a large quantity of FUEL, this is classified as:",o:["A legal defensive strategy","A Minor Foul only","A strategic violation — Major Foul and Verbal Warning","Automatic disqualification"],a:2},
+  {q:"Team Update 14 added exception D to G413. A flex of ROBOT components contributing to an R106 violation is exempt from penalty if within how many inches of the ROBOT PERIMETER?",o:["0.5 in","1.0 in","1.5 in","2.0 in"],a:2},
+  {q:"Rule G415 prohibits using a component outside the ROBOT PERIMETER (except BUMPERS) to initiate contact with an opponent where?",o:["Anywhere on the field","Inside the vertical projection of the opponent's ROBOT PERIMETER or with their BUMPER backing/mounting","Only in the opponent's ALLIANCE ZONE","Only during Autonomous"],a:1},
+  {q:"Under G416, which scenario IS an exception (allowed) to the rule against damaging an opponent robot?",o:["Contact inside an opening of an opponent's BUMPERS or the space above it","Any contact during Teleop","Contact via a SCORING ELEMENT the robot controls","Contact during Endgame"],a:0},
+  {q:"Rule G427 states that off-FIELD FUEL may only be stored where?",o:["Anywhere in the OUTPOST","In the CHUTE and CORRAL only","In the DEPOT","In the ALLIANCE ZONE"],a:1},
+  {q:"Under G427, a HUMAN PLAYER is exempt from the OUTPOST storage limit while holding up to how many FUEL?",o:["1","2","3","5"],a:1},
+  {q:"Per rule G303, if a robot's starting position prevents a FIELD gate from opening, what occurs?",o:["Match is delayed until it moves","The robot may be asked to move; teams should prepare multiple AUTO start locations","The team receives a FOUL penalty","The alliance forfeits all AUTO points"],a:1},
+  {q:"What does a PURPLE HUB light color indicate post-match?",o:["Field is safe for all","Match is ready to start","Field is safe for FIELD STAFF only","Post-match 3-second scoring assessment"],a:2},
+  {q:"What does the ALLIANCE color PULSING on the HUB indicate during a match?",o:["HUB is fully active and scoring","HUB deactivation warning — begins 3 seconds before deactivation","Transition Shift is starting","Alliance is currently winning"],a:1},
+  {q:"Which of the following is NOT a valid exception to the G413 expansion limits rule?",o:["Visible damage not used for strategic benefit","Momentary over-expansion not for strategic benefit","Component flex within 1.5 in of ROBOT PERIMETER","Intentional expansion to block an opponent"],a:3},
+  {q:"According to section 5.7, how wide is a DEPOT in FRC 2026 REBUILT?",o:["36.0 in","42.0 in","48.0 in","27.0 in"],a:1},
+  {q:"Violations of G408 (Don't catch FUEL) are counted per what unit?",o:["Per individual FUEL piece","Per match","Per instance of catching/redirecting from the HUB","Per robot per period"],a:2},
+  {q:"What does the HUB light display when the match is ready to start and the HUB is not yet active?",o:["Green","White","Off","Purple"],a:2}
+];
+
+var pName='', questions=[], cur=0, score=0, answered=false, answerLog=[];
+
+function shuffle(a){ return a.slice().sort(function(){return Math.random()-.5;}); }
+
+function toggleAdminLogin(){
+  document.getElementById('admin-login-area').classList.toggle('show');
+}
+
+function adminLogin(){
+  var pw = document.getElementById('admin-pw-input').value;
+  if(pw === PASS_KEY){
+    document.getElementById('admin-err').style.display='none';
+    window.open('https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit', '_blank');
+  } else {
+    document.getElementById('admin-err').style.display='block';
+  }
+}
+
+function startQuiz(){
+  var v = document.getElementById('name-input').value.trim();
+  if(!v){ document.getElementById('name-err').style.display='block'; return; }
+  document.getElementById('name-err').style.display='none';
+  pName=v;
+  questions=shuffle(ALL_Q).slice(0,10);
+  cur=0; score=0; answered=false; answerLog=[];
+  document.getElementById('name-screen').style.display='none';
+  document.getElementById('scorebar').style.display='flex';
+  document.getElementById('quiz-area').style.display='block';
+  loadQ();
+}
+
+function loadQ(){
+  answered=false;
+  var q=questions[cur];
+  document.getElementById('q-label').textContent='QUESTION '+String(cur+1).padStart(2,'0')+' OF 10';
+  document.getElementById('q-text').textContent=q.q;
+  var sb=document.getElementById('btn-submit'), nb=document.getElementById('btn-next');
+  sb.disabled=true; sb.style.display='inline-block';
+  nb.disabled=true; nb.style.display='none';
+  nb.textContent=cur<9?'Next →':'See Results →';
+  var idxs=shuffle([0,1,2,3]);
+  var grid=document.getElementById('options-grid');
+  grid.innerHTML='';
+  idxs.forEach(function(oi){
+    var b=document.createElement('button');
+    b.className='option'; b.textContent=q.o[oi]; b.dataset.orig=oi;
+    b.onclick=function(){ pick(b); };
+    grid.appendChild(b);
+  });
+  document.getElementById('q-counter').textContent=(cur+1)+'/10';
+  document.getElementById('progress-bar').style.width=(cur/10*100)+'%';
+  var card=document.getElementById('question-card');
+  card.style.animation='none'; void card.offsetHeight; card.style.animation='fi .4s ease';
+}
+
+function pick(btn){
+  if(answered) return;
+  var all=document.querySelectorAll('.option');
+  for(var i=0;i<all.length;i++) all[i].classList.remove('selected');
+  btn.classList.add('selected');
+  document.getElementById('btn-submit').disabled=false;
+}
+
+function submitAnswer(){
+  if(answered) return;
+  var sel=document.querySelector('.option.selected');
+  if(!sel) return;
+  answered=true;
+  var chosenOrig=parseInt(sel.dataset.orig);
+  var correct=(chosenOrig===questions[cur].a);
+  answerLog.push({
+    question: questions[cur].q,
+    chosen: questions[cur].o[chosenOrig],
+    correctAnswer: questions[cur].o[questions[cur].a],
+    wasCorrect: correct
+  });
+  var all=document.querySelectorAll('.option');
+  for(var i=0;i<all.length;i++) all[i].disabled=true;
+  if(correct) score++;
+  document.getElementById('score-display').textContent=score;
+  document.getElementById('btn-submit').style.display='none';
+  var nb=document.getElementById('btn-next');
+  nb.disabled=false; nb.style.display='inline-block';
+}
+
+function nextQuestion(){ cur++; if(cur>=10) showResults(); else loadQ(); }
+
+function showResults(){
+  document.getElementById('quiz-area').style.display='none';
+  document.getElementById('scorebar').style.display='none';
+  document.getElementById('results').classList.add('show');
+  document.getElementById('final-score').textContent=score+'/10';
+  document.getElementById('result-name').textContent='Participant: '+pName;
+  document.getElementById('res-correct').textContent=score;
+  document.getElementById('res-wrong').textContent=10-score;
+  var p=score/10;
+  var msg=p>=.9?'Outstanding. You know the rulebook cold.':p>=.7?'Good work. Review your weak spots before competition.':p>=.5?'Passing — but more study is needed.':'Keep studying. Your team is counting on you.';
+  document.getElementById('result-msg').textContent=msg;
+  document.getElementById('progress-bar').style.width='100%';
+  sendToSheet({name:pName, score:score, total:10, date:new Date().toLocaleString(), log:answerLog});
+}
+
+function sendToSheet(data){
+  var msg=document.getElementById('saving-msg');
+  msg.style.color='var(--dim)';
+  msg.textContent='Saving results...';
+  fetch(SHEET_URL, {
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(data)
+  }).then(function(){
+    msg.style.color='var(--correct)';
+    msg.textContent='✓ Results saved!';
+  }).catch(function(){
+    msg.style.color='var(--wrong)';
+    msg.textContent='⚠ Could not save — check your connection.';
+  });
+}
+
+function restartQuiz(){
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('name-screen').style.display='block';
+  document.getElementById('name-input').value='';
+}
+
+document.getElementById('name-input').addEventListener('keydown',function(e){ if(e.key==='Enter') startQuiz(); });
+document.getElementById('admin-pw-input').addEventListener('keydown',function(e){ if(e.key==='Enter') adminLogin(); });
+</script>
+</body>
+</html>
