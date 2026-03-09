@@ -86,6 +86,16 @@
         <div class="err" id="admin-err">Incorrect password.</div>
         <button class="btn" onclick="adminLogin()">Enter Admin →</button>
       </div>
+      <div id="admin-controls" style="display:none;margin-top:14px;padding:16px;background:rgba(0,212,255,.05);border:1px solid var(--border);">
+        <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:12px;">// ADMIN CONTROLS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+          <button class="btn" style="margin-top:0" onclick="viewSheet()">View Results Sheet</button>
+        </div>
+        <div>
+          <span id="qb-toggle" style="font-size:11px;color:var(--dim);cursor:pointer;letter-spacing:2px;text-decoration:underline;" onclick="toggleQB()">▸ View Question Bank (31 questions)</span>
+          <div id="qb-container" style="display:none;margin-top:12px;max-height:500px;overflow-y:auto;"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -174,9 +184,37 @@ function adminLogin(){
   var pw = document.getElementById('admin-pw-input').value;
   if(pw === PASS_KEY){
     document.getElementById('admin-err').style.display='none';
-    window.open('https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit', '_blank');
+    document.getElementById('admin-login-area').classList.remove('show');
+    document.getElementById('admin-controls').style.display='block';
   } else {
     document.getElementById('admin-err').style.display='block';
+  }
+}
+
+function viewSheet(){
+  window.open('https://docs.google.com/spreadsheets/d/1UXv8arVb5GTBQrlrTmv9Ubp7DjOygAvQLWhpp9j_mJc/edit','_blank');
+}
+
+function toggleQB(){
+  var container = document.getElementById('qb-container');
+  var toggle = document.getElementById('qb-toggle');
+  var show = container.style.display === 'none' || container.style.display === '';
+  container.style.display = show ? 'block' : 'none';
+  toggle.textContent = show ? '▼ Hide Question Bank' : '▸ View Question Bank ('+ALL_Q.length+' questions)';
+  if(show && container.innerHTML === ''){
+    var html = '';
+    ALL_Q.forEach(function(q, i){
+      html += '<div style="background:var(--panel);border:1px solid var(--border);padding:14px;margin-bottom:10px;">';
+      html += '<div style="font-size:9px;color:var(--accent2);letter-spacing:2px;margin-bottom:6px;">QUESTION '+(i+1)+' OF '+ALL_Q.length+'</div>';
+      html += '<div style="font-size:12px;color:#fff;margin-bottom:8px;line-height:1.5;">'+q.q+'</div>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
+      q.o.forEach(function(opt, oi){
+        var isCorrect = oi === q.a;
+        html += '<div style="font-size:11px;padding:6px 10px;border:1px solid '+(isCorrect?'var(--correct)':'var(--border)')+';color:'+(isCorrect?'var(--correct)':'var(--dim)')+';">'+opt+(isCorrect?' ✓':'')+'</div>';
+      });
+      html += '</div></div>';
+    });
+    container.innerHTML = html;
   }
 }
 
